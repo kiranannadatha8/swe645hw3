@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: survey-backend
+  namespace: student-survey
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: survey-backend
+  template:
+    metadata:
+      labels:
+        app: survey-backend
+    spec:
+      containers:
+        - name: survey-backend
+          image: ghcr.io/your-org/survey-backend:latest
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: survey-backend-config
+            - secretRef:
+                name: survey-backend-secrets
+          ports:
+            - containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: survey-backend
+  namespace: student-survey
+spec:
+  selector:
+    app: survey-backend
+  ports:
+    - port: 80
+      targetPort: 8000
+      protocol: TCP
+

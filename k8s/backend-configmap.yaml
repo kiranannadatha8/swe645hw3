@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: survey-backend-config
+  namespace: student-survey
+data:
+  CORS_ORIGINS: "http://localhost:4173,https://your-frontend-domain"
+

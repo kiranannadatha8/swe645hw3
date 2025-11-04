@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: survey-frontend
+  namespace: student-survey
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: survey-frontend
+  template:
+    metadata:
+      labels:
+        app: survey-frontend
+    spec:
+      containers:
+        - name: survey-frontend
+          image: ghcr.io/your-org/survey-frontend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: survey-frontend
+  namespace: student-survey
+spec:
+  type: ClusterIP
+  selector:
+    app: survey-frontend
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+

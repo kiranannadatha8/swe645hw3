@@ -1,0 +1,87 @@
+pipeline {
+  agent any
+
+  environment {
+    REGISTRY = "ghcr.io/your-org"
+    BACKEND_IMAGE = "${REGISTRY}/survey-backend:${BUILD_NUMBER}"
+    FRONTEND_IMAGE = "${REGISTRY}/survey-frontend:${BUILD_NUMBER}"
+    VITE_API_BASE_URL = "https://survey.example.com/api"
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Backend Dependencies') {
+      steps {
+        dir('backend') {
+          sh '''
+            python3 -m venv .venv
+            . .venv/bin/activate
+            pip install --upgrade pip
+            pip install -r requirements.txt pytest
+          '''
+        }
+      }
+    }
+
+    stage('Backend Tests') {
+      steps {
+        dir('backend') {
+          sh '''
+            . .venv/bin/activate
+            python -m compileall app
+            pytest
+          '''
+        }
+      }
+    }
+
+    stage('Frontend Build') {
+      steps {
+        dir('frontend') {
+          sh '''
+            npm ci
+            npm run build
+          '''
+        }
+      }
+    }
+
+    stage('Docker Build & Push') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'docker-registry-creds', passwordVariable: 'REGISTRY_PASSWORD', usernameVariable: 'REGISTRY_USERNAME')]) {
+          sh '''
+            echo "$REGISTRY_PASSWORD" | docker login $REGISTRY -u "$REGISTRY_USERNAME" --password-stdin
+            docker build -t $BACKEND_IMAGE backend
+            docker build --build-arg VITE_API_BASE_URL=$VITE_API_BASE_URL -t $FRONTEND_IMAGE frontend
+            docker push $BACKEND_IMAGE
+            docker push $FRONTEND_IMAGE
+            docker logout $REGISTRY
+          '''
+        }
+      }
+    }
+
+    stage('Deploy to Kubernetes') {
+      steps {
+        withKubeConfig(credentialsId: 'rancher-kubeconfig') {
+          sh '''
+            kubectl apply -f k8s/namespace.yaml
+            kubectl apply -f k8s/backend-configmap.yaml
+            kubectl apply -f k8s/backend-deployment.yaml
+            kubectl apply -f k8s/frontend-deployment.yaml
+            kubectl apply -f k8s/ingress.yaml
+          '''
+          sh '''
+            kubectl set image deployment/survey-backend survey-backend=$BACKEND_IMAGE -n student-survey
+            kubectl set image deployment/survey-frontend survey-frontend=$FRONTEND_IMAGE -n student-survey
+          '''
+        }
+      }
+    }
+  }
+}

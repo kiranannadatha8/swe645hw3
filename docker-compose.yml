@@ -1,0 +1,46 @@
+services:
+  mysql:
+    image: mysql:8.3
+    container_name: survey-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: student_survey
+      MYSQL_USER: survey_user
+      MYSQL_PASSWORD: survey_pass
+      MYSQL_ROOT_PASSWORD: root_pass
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot_pass"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    container_name: survey-backend
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: mysql+pymysql://survey_user:survey_pass@mysql:3306/student_survey
+      CORS_ORIGINS: '["http://localhost:4173","http://localhost:5173"]'
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        - VITE_API_BASE_URL=http://localhost:8000/api
+    container_name: survey-frontend
+    depends_on:
+      - backend
+    ports:
+      - "4173:80"
+
+volumes:
+  mysql_data:
