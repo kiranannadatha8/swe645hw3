@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: survey-frontend
-          image: ghcr.io/your-org/survey-frontend:latest
+          image: kiran1703/survey-frontend:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 80
