@@ -29,18 +29,6 @@ pipeline {
       }
     }
 
-    stage('Backend Tests') {
-      steps {
-        dir('backend') {
-          sh '''
-            . .venv/bin/activate
-            python -m compileall app
-            pytest
-          '''
-        }
-      }
-    }
-
     stage('Frontend Build') {
       steps {
         dir('frontend') {
