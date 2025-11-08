@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: survey-backend
-          image: kiran1703/survey-backend:latest
+          image: kiran1703/survey-backend:${BUILD_NUMBER}
           imagePullPolicy: Always
           envFrom:
             - configMapRef:
