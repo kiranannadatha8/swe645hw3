@@ -75,8 +75,6 @@ pipeline {
             kubectl set image deployment/survey-frontend survey-frontend=$FRONTEND_IMAGE -n student-survey
           '''
           sh '''
-            kubectl rollout status deployment/survey-backend -n student-survey
-            kubectl rollout status deployment/survey-frontend -n student-survey
             kubectl get svc -A | grep -i ingress
           '''
         }
