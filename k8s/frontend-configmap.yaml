@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: survey-frontend-config
+  namespace: student-survey
+data:
+  runtime-config.js: |
+    window.__SURVEY_CONFIG__ = {
+      apiBaseUrl: "https://survey.example.com/api",
+      apiTimeoutMs: 15000,
+    };

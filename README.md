@@ -87,12 +87,13 @@ Services:
 
 1. Build and push Docker images for the frontend and backend (see Jenkins section).
 2. Replace the placeholder image references in `k8s/backend-deployment.yaml` and `k8s/frontend-deployment.yaml` with your registry paths.
-3. Create the namespace and config map:
+3. Create the namespace and config maps:
    ```bash
    kubectl apply -f k8s/namespace.yaml
    kubectl apply -f k8s/backend-configmap.yaml
+   kubectl apply -f k8s/frontend-configmap.yaml
    ```
-4. Create the backend secret with your production `DATABASE_URL`:
+4. Create the backend secret with your production `DATABASE_URL` (or discrete DB_* keys):
    ```bash
    kubectl create secret generic survey-backend-secrets \
      --from-literal=DATABASE_URL='mysql+pymysql://user:pass@rds-endpoint:3306/student_survey' \
@@ -105,6 +106,10 @@ Services:
    kubectl apply -f k8s/ingress.yaml
    ```
 6. Update `k8s/ingress.yaml` hostnames to match your DNS and configure TLS through Rancher/Ingress controller as needed.
+
+`frontend/public/runtime-config.js` defines the default API endpoint/timeouts used by the
+React app. In Kubernetes the file is overridden via `survey-frontend-config` so each
+environment can supply its own backend URL without rebuilding the image.
 
 ## Jenkins CI/CD Pipeline
 
