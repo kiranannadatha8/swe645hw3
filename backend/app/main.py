@@ -9,9 +9,11 @@ settings = get_settings()
 
 app = FastAPI(title="SWE 645 Student Survey API")
 
+cors_allow_all = not settings.cors_origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[] if cors_allow_all else settings.cors_origins,
+    allow_origin_regex=".*" if cors_allow_all else None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -31,4 +33,3 @@ def healthcheck() -> dict[str, str]:
 
 
 app.include_router(api_router)
-
