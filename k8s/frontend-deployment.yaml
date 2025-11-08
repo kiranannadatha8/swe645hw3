@@ -23,13 +23,6 @@ spec:
             - name: frontend-runtime-config
               mountPath: /usr/share/nginx/html/runtime-config.js
               subPath: runtime-config.js
-          resources:
-            requests:
-              cpu: 100m
-              memory: 64Mi
-            limits:
-              cpu: 200m
-              memory: 128Mi
       volumes:
         - name: frontend-runtime-config
           configMap:
