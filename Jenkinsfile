@@ -3,8 +3,8 @@ pipeline {
 
   environment {
     REGISTRY_DOMAIN = "docker.io"
-    BACKEND_IMAGE = "your-dockerhub-username/survey-backend:${BUILD_NUMBER}"
-    FRONTEND_IMAGE = "your-dockerhub-username/survey-frontend:${BUILD_NUMBER}"
+    BACKEND_IMAGE = "kiran1703/survey-backend:${BUILD_NUMBER}"
+    FRONTEND_IMAGE = "kiran1703/survey-frontend:${BUILD_NUMBER}"
     VITE_API_BASE_URL = "https://survey.example.com/api"
     VITE_API_TIMEOUT_MS = "15000"
   }
