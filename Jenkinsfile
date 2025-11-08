@@ -64,6 +64,7 @@ pipeline {
           sh '''
             kubectl apply -f k8s/namespace.yaml
             kubectl apply -f k8s/backend-configmap.yaml
+            kubectl apply -f k8s/backend-secret.yaml
             kubectl apply -f k8s/frontend-configmap.yaml
             kubectl apply -f k8s/backend-deployment.yaml
             kubectl apply -f k8s/frontend-deployment.yaml

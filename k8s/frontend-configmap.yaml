@@ -6,6 +6,6 @@ metadata:
 data:
   runtime-config.js: |
     window.__SURVEY_CONFIG__ = {
-      apiBaseUrl: "https://survey.example.com/api",
+      apiBaseUrl: "http://100.24.38.236/api",
       apiTimeoutMs: 15000,
     };

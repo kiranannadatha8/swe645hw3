@@ -4,10 +4,9 @@ metadata:
   name: survey-ingress
   namespace: student-survey
 spec:
-  ingressClassName: nginx # keep if your cluster uses nginx; otherwise remove/adjust
+  ingressClassName: nginx
   rules:
-    - host: survey.example.com
-      http:
+    - http:
         paths:
           - path: /api
             pathType: Prefix
@@ -15,7 +14,7 @@ spec:
               service:
                 name: survey-backend
                 port:
-                  number: 8000 # <-- matches your uvicorn Service port
+                  number: 80 # Service listens on 80 (maps to container 8000)
           - path: /
             pathType: Prefix
             backend:
