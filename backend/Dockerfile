@@ -24,6 +24,9 @@ COPY app ./app
 
 # ---- security: create non-root user
 RUN useradd -u 10001 -m appuser
+
+RUN chown -R appuser:appuser /app
+
 USER appuser
 
 EXPOSE 8000
