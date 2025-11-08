@@ -3,21 +3,20 @@ kind: Ingress
 metadata:
   name: survey-ingress
   namespace: student-survey
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
 spec:
+  ingressClassName: nginx # keep if your cluster uses nginx; otherwise remove/adjust
   rules:
     - host: survey.example.com
       http:
         paths:
-          - path: /api(/|$)(.*)
+          - path: /api
             pathType: Prefix
             backend:
               service:
                 name: survey-backend
                 port:
-                  number: 80
-          - path: /(.*)
+                  number: 8000 # <-- matches your uvicorn Service port
+          - path: /
             pathType: Prefix
             backend:
               service:
