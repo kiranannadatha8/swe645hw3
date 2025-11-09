@@ -1,8 +1,9 @@
 from collections.abc import Generator
+import os
 import time
 from typing import Any
 
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine import Engine, URL
 from sqlalchemy.exc import OperationalError
 
 from sqlmodel import Session, SQLModel, create_engine
@@ -15,7 +16,33 @@ settings = get_settings()
 def _build_engine() -> Engine:
     engine_kwargs: dict[str, Any] = {"echo": settings.sql_echo, "pool_pre_ping": True}
 
-    database_uri = settings.sqlalchemy_database_uri
+    # Prefer DB_* env vars directly (Kubernetes Secrets) to avoid any stale config
+    db_driver = os.getenv("DB_DRIVER", settings.db_driver)
+    db_host = os.getenv("DB_HOST", settings.db_host or "")
+    db_port = int(os.getenv("DB_PORT", str(settings.db_port)))
+    db_user = os.getenv("DB_USER", settings.db_user or "")
+    db_password = os.getenv("DB_PASSWORD", settings.db_password or "")
+    db_name = os.getenv("DB_NAME", settings.db_name or "")
+    db_charset = settings.db_charset
+
+    if db_host and db_user and db_password and db_name:
+        # Build URL from components using the real env password
+        query = {"charset": db_charset} if db_charset else {}
+        database_uri = str(
+            URL.create(
+                drivername=db_driver,
+                username=db_user,
+                password=db_password,
+                host=db_host,
+                port=db_port,
+                database=db_name,
+                query=query,
+            )
+        )
+    else:
+        # Fallback to whatever settings says (for local dev)
+        database_uri = settings.sqlalchemy_database_uri
+
     if database_uri.startswith("sqlite"):
         engine_kwargs["connect_args"] = {"check_same_thread": False}
     else:
@@ -38,7 +65,7 @@ def init_db(max_attempts: int = 8, initial_backoff: float = 1.0) -> None:
         try:
             SQLModel.metadata.create_all(engine)
             return
-        except OperationalError as exc:
+        except OperationalError:
             if attempt == max_attempts:
                 raise
             time.sleep(backoff)
