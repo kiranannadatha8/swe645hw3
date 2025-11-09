@@ -14,9 +14,16 @@ settings = get_settings()
 
 
 def _build_engine() -> Engine:
+    """
+    Build a SQLAlchemy engine.
+
+    In Kubernetes/RDS, we ALWAYS build the DB URL from the DB_* environment
+    variables so that the password from the Secret is used directly, and we
+    avoid any stale values that might come from .env or defaults.
+    """
     engine_kwargs: dict[str, Any] = {"echo": settings.sql_echo, "pool_pre_ping": True}
 
-    # Prefer DB_* env vars directly (Kubernetes Secrets) to avoid any stale config
+    # Prefer DB_* env vars supplied via Kubernetes Secret
     db_driver = os.getenv("DB_DRIVER", settings.db_driver)
     db_host = os.getenv("DB_HOST", settings.db_host or "")
     db_port = int(os.getenv("DB_PORT", str(settings.db_port)))
@@ -28,19 +35,18 @@ def _build_engine() -> Engine:
     if db_host and db_user and db_password and db_name:
         # Build URL from components using the real env password
         query = {"charset": db_charset} if db_charset else {}
-        database_uri = str(
-            URL.create(
-                drivername=db_driver,
-                username=db_user,
-                password=db_password,
-                host=db_host,
-                port=db_port,
-                database=db_name,
-                query=query,
-            )
+        url = URL.create(
+            drivername=db_driver,
+            username=db_user,
+            password=db_password,   # <- THIS will match DB_PASSWORD
+            host=db_host,
+            port=db_port,
+            database=db_name,
+            query=query,
         )
+        database_uri = str(url)
     else:
-        # Fallback to whatever settings says (for local dev)
+        # Fallback for local dev / sqlite etc.
         database_uri = settings.sqlalchemy_database_uri
 
     if database_uri.startswith("sqlite"):
