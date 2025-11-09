@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from functools import lru_cache
 from typing import Literal
 
@@ -77,11 +78,11 @@ class Settings(BaseSettings):
     def sqlalchemy_database_uri(self) -> str:
         """Return a fully qualified database URI for SQLAlchemy/SQLModel."""
 
-        # ✅ 1. Prefer DB_* components (k8s/RDS path)
+        # 1. Prefer discrete DB_* components (k8s/RDS)
         if self._has_db_components:
             return self._compose_db_url()
 
-        # 2. Fall back to full DATABASE_URL only if DB_* isn’t set
+        # 2. Fall back to full DATABASE_URL for local/simple usage
         if self.database_url:
             return self.database_url
 
@@ -93,17 +94,23 @@ class Settings(BaseSettings):
             "DATABASE_URL or DB_* secrets must be provided for non-local environments"
         )
 
+        """Return a fully qualified database URI for SQLAlchemy/SQLModel."""
+
+
     @property
     def _has_db_components(self) -> bool:
-        return all((self.db_host, self.db_user, self.db_password, self.db_name))
+        return all((self.db_host, self.db_user, (self.db_password or os.getenv("DB_PASSWORD")), self.db_name))
 
     def _compose_db_url(self) -> str:
+        # ✅ Prefer the real pod env over any stale value from .env
+        password = os.getenv("DB_PASSWORD") or self.db_password
+
         query = {"charset": self.db_charset} if self.db_charset else {}
         return str(
             URL.create(
                 drivername=self.db_driver,
                 username=self.db_user,
-                password=self.db_password,
+                password=password,
                 host=self.db_host,
                 port=self.db_port,
                 database=self.db_name,
