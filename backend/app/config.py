@@ -1,3 +1,5 @@
+# app/config.py
+
 from __future__ import annotations
 
 import json
@@ -10,11 +12,9 @@ from sqlalchemy.engine import URL
 
 
 class Settings(BaseSettings):
-    """Application configuration loaded from environment variables."""
-
     environment: Literal["local", "development", "production"] = "local"
 
-    # Direct SQLAlchemy URL, primarily used for local development or single-string secrets
+    # Full URL (optional). We want this SECONDARY in k8s.
     database_url: str | None = Field(
         default=None,
         description=(
@@ -23,40 +23,38 @@ class Settings(BaseSettings):
         ),
     )
 
-    # Individual database components for Kubernetes secrets / AWS RDS
-    db_driver: str = Field(default="mysql+pymysql", description="SQLAlchemy driver name")
-    db_host: str | None = Field(default=None, description="Database host or endpoint")
-    db_port: int = Field(default=3306, description="Database port")
-    db_user: str | None = Field(default=None, description="Database username")
-    db_password: str | None = Field(default=None, description="Database password")
-    db_name: str | None = Field(default=None, description="Database/schema name")
-    db_charset: str | None = Field(default="utf8mb4", description="Optional charset query param")
+    # Discrete DB_* fields (these come from your Secret)
+    db_driver: str = Field(default="mysql+pymysql")
+    db_host: str | None = Field(default=None)
+    db_port: int = Field(default=3306)
+    db_user: str | None = Field(default=None)
+    db_password: str | None = Field(default=None)
+    db_name: str | None = Field(default=None)
+    db_charset: str | None = Field(default="utf8mb4")
 
-    # Connection pool tuning suitable for production workloads
-    db_pool_size: int = Field(default=5, ge=1, description="Base SQLAlchemy pool size")
-    db_pool_max_overflow: int = Field(
-        default=10, ge=0, description="Additional connections allowed beyond the base pool"
-    )
-    db_pool_recycle: int = Field(
-        default=1800, ge=0, description="Seconds before recycling a stale connection"
-    )
-    sql_echo: bool = Field(default=False, description="Enable SQLAlchemy engine echo for debugging")
+    db_pool_size: int = Field(default=5, ge=1)
+    db_pool_max_overflow: int = Field(default=10, ge=0)
+    db_pool_recycle: int = Field(default=1800, ge=0)
+    sql_echo: bool = Field(default=False)
 
     cors_origins: list[str] = Field(
         default_factory=lambda: ["http://localhost:5173"],
-        description="Allowed CORS origins for the API",
     )
 
     sqlite_fallback_url: str = Field(
         default="sqlite:///./student_surveys.db",
-        description="Used automatically when running locally without DB env vars",
     )
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
     @field_validator("cors_origins", mode="before")
     @classmethod
     def parse_cors_origins(cls, value: object) -> list[str]:
+        # … your existing CORS logic unchanged …
         if value is None:
             return []
         if isinstance(value, str):
@@ -79,15 +77,15 @@ class Settings(BaseSettings):
     def sqlalchemy_database_uri(self) -> str:
         """Return a fully qualified database URI for SQLAlchemy/SQLModel."""
 
-        # 1. Prefer discrete DB_* components (k8s/RDS)
+        # ✅ 1. Prefer DB_* components (k8s/RDS path)
         if self._has_db_components:
             return self._compose_db_url()
 
-        # 2. Fall back to full DATABASE_URL for local / simple setups
+        # 2. Fall back to full DATABASE_URL only if DB_* isn’t set
         if self.database_url:
             return self.database_url
 
-        # 3. Local dev fallback
+        # 3. Local fallback
         if self.environment == "local":
             return self.sqlite_fallback_url
 
@@ -116,5 +114,4 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    """Return cached settings instance to avoid re-parsing environment variables."""
     return Settings()
