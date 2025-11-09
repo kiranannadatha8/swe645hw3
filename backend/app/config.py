@@ -78,12 +78,16 @@ class Settings(BaseSettings):
     @property
     def sqlalchemy_database_uri(self) -> str:
         """Return a fully qualified database URI for SQLAlchemy/SQLModel."""
-        if self.database_url:
-            return self.database_url
 
+        # 1. Prefer discrete DB_* components (k8s/RDS)
         if self._has_db_components:
             return self._compose_db_url()
 
+        # 2. Fall back to full DATABASE_URL for local / simple setups
+        if self.database_url:
+            return self.database_url
+
+        # 3. Local dev fallback
         if self.environment == "local":
             return self.sqlite_fallback_url
 
