@@ -26,14 +26,14 @@ def _mysql_creator():
     db = os.environ["DB_NAME"]
     port = int(os.environ.get("DB_PORT", "3306"))
 
+    # IMPORTANT: do NOT use DictCursor here, SQLAlchemy expects tuple rows.
     return pymysql.connect(
         host=host,
         user=user,
         password=password,
-        db=db,
+        database=db,  # or db=db, either is fine
         port=port,
         charset=settings.db_charset or "utf8mb4",
-        cursorclass=pymysql.cursors.DictCursor,
     )
 
 
