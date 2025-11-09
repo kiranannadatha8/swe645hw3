@@ -1,11 +1,13 @@
+# app/database.py
+
 from collections.abc import Generator
 import os
 import time
 from typing import Any
 
-from sqlalchemy.engine import Engine, URL
+import pymysql
+from sqlalchemy.engine import Engine
 from sqlalchemy.exc import OperationalError
-
 from sqlmodel import Session, SQLModel, create_engine
 
 from .config import get_settings
@@ -13,50 +15,53 @@ from .config import get_settings
 settings = get_settings()
 
 
+def _mysql_creator():
+    """
+    DBAPI connection creator for MySQL using env vars directly.
+    This bypasses any confusion with SQLAlchemy URL passwords.
+    """
+    host = os.environ["DB_HOST"]
+    user = os.environ["DB_USER"]
+    password = os.environ["DB_PASSWORD"]
+    db = os.environ["DB_NAME"]
+    port = int(os.environ.get("DB_PORT", "3306"))
+
+    return pymysql.connect(
+        host=host,
+        user=user,
+        password=password,
+        db=db,
+        port=port,
+        charset=settings.db_charset or "utf8mb4",
+        cursorclass=pymysql.cursors.DictCursor,
+    )
+
+
 def _build_engine() -> Engine:
     """
     Build a SQLAlchemy engine.
 
-    In Kubernetes/RDS, we ALWAYS build the DB URL from the DB_* environment
-    variables so that the password from the Secret is used directly, and we
-    avoid any stale values that might come from .env or defaults.
+    In Kubernetes/RDS, we ALWAYS use a custom creator that calls pymysql.connect
+    with DB_* env vars, so we know it's the same as your working raw test.
     """
     engine_kwargs: dict[str, Any] = {"echo": settings.sql_echo, "pool_pre_ping": True}
 
-    # Prefer DB_* env vars supplied via Kubernetes Secret
-    db_driver = os.getenv("DB_DRIVER", settings.db_driver)
-    db_host = os.getenv("DB_HOST", settings.db_host or "")
-    db_port = int(os.getenv("DB_PORT", str(settings.db_port)))
-    db_user = os.getenv("DB_USER", settings.db_user or "")
-    db_password = os.getenv("DB_PASSWORD", settings.db_password or "")
-    db_name = os.getenv("DB_NAME", settings.db_name or "")
-    db_charset = settings.db_charset
-
-    if db_host and db_user and db_password and db_name:
-        # Build URL from components using the real env password
-        query = {"charset": db_charset} if db_charset else {}
-        url = URL.create(
-            drivername=db_driver,
-            username=db_user,
-            password=db_password,   # <- THIS will match DB_PASSWORD
-            host=db_host,
-            port=db_port,
-            database=db_name,
-            query=query,
-        )
-        database_uri = str(url)
+    # If we have DB_HOST etc, assume we're in MySQL/RDS mode
+    if all(os.getenv(k) for k in ["DB_HOST", "DB_USER", "DB_PASSWORD", "DB_NAME"]):
+        # Use a dummy URL (no creds here); creator handles the real connection.
+        database_uri = "mysql+pymysql://"
+        engine_kwargs["creator"] = _mysql_creator
     else:
-        # Fallback for local dev / sqlite etc.
+        # Fallback to whatever settings says (e.g., local SQLite dev)
         database_uri = settings.sqlalchemy_database_uri
-
-    if database_uri.startswith("sqlite"):
-        engine_kwargs["connect_args"] = {"check_same_thread": False}
-    else:
-        engine_kwargs.update(
-            pool_size=settings.db_pool_size,
-            max_overflow=settings.db_pool_max_overflow,
-            pool_recycle=settings.db_pool_recycle,
-        )
+        if database_uri.startswith("sqlite"):
+            engine_kwargs["connect_args"] = {"check_same_thread": False}
+        else:
+            engine_kwargs.update(
+                pool_size=settings.db_pool_size,
+                max_overflow=settings.db_pool_max_overflow,
+                pool_recycle=settings.db_pool_recycle,
+            )
 
     return create_engine(database_uri, **engine_kwargs)
 
