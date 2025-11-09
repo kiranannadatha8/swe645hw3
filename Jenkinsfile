@@ -73,6 +73,9 @@ pipeline {
             kubectl set image deployment/survey-backend survey-backend=$BACKEND_IMAGE -n student-survey
             kubectl set image deployment/survey-frontend survey-frontend=$FRONTEND_IMAGE -n student-survey
           '''
+          sh '''
+            kubectl rollout restart deployment/survey-backend -n student-survey
+          '''
         }
       }
     }
