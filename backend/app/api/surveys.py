@@ -32,7 +32,7 @@ def list_surveys(
     return results
 
 
-@router.get("{survey_id}", response_model=SurveyRead)
+@router.get("/{survey_id}", response_model=SurveyRead)
 def get_survey(survey_id: int, session: Session = Depends(get_session)) -> Survey:
     survey = session.get(Survey, survey_id)
     if not survey:
@@ -40,7 +40,7 @@ def get_survey(survey_id: int, session: Session = Depends(get_session)) -> Surve
     return survey
 
 
-@router.put("{survey_id}", response_model=SurveyRead)
+@router.put("/{survey_id}", response_model=SurveyRead)
 def update_survey(
     survey_id: int, payload: SurveyUpdate, session: Session = Depends(get_session)
 ) -> Survey:
@@ -59,7 +59,7 @@ def update_survey(
     return survey
 
 
-@router.delete("{survey_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{survey_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_survey(survey_id: int, session: Session = Depends(get_session)) -> None:
     survey = session.get(Survey, survey_id)
     if not survey:

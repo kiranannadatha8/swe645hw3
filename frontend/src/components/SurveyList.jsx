@@ -1,15 +1,18 @@
+import "bootstrap/dist/css/bootstrap.min.css";
 import {
   interestSourceOptions,
   likedMostOptions,
   recommendationOptions,
 } from "../constants/options";
 
-const likedMostLabels = Object.fromEntries(likedMostOptions.map((item) => [item.value, item.label]));
+const likedMostLabels = Object.fromEntries(
+  likedMostOptions.map((item) => [item.value, item.label])
+);
 const recommendationLabels = Object.fromEntries(
-  recommendationOptions.map((item) => [item.value, item.label]),
+  recommendationOptions.map((item) => [item.value, item.label])
 );
 const interestSourceLabels = Object.fromEntries(
-  interestSourceOptions.map((item) => [item.value, item.label]),
+  interestSourceOptions.map((item) => [item.value, item.label])
 );
 
 function formatDate(value) {
@@ -25,19 +28,27 @@ function formatLikedMost(values = []) {
 }
 
 export default function SurveyList({ surveys, loading, onEdit, onDelete }) {
+  const gmuGreen = "#006633";
+  const gmuLightGray = "#FFCC33";
+
   return (
-    <section className="panel">
-      <div className="header-row">
-        <h2>Submitted Surveys</h2>
+    <section className="container my-5">
+      <div className="mb-3">
+        <h2 style={{ color: gmuGreen }}>Submitted Surveys</h2>
       </div>
+
       {loading ? (
-        <div className="empty-state">Loading surveys…</div>
+        <div className="text-center py-5" style={{ color: gmuGreen }}>
+          Loading surveys…
+        </div>
       ) : surveys.length === 0 ? (
-        <div className="empty-state">No surveys have been recorded yet.</div>
+        <div className="text-center py-5" style={{ color: gmuGreen }}>
+          No surveys have been recorded yet.
+        </div>
       ) : (
-        <div style={{ overflowX: "auto" }}>
-          <table className="survey-table">
-            <thead>
+        <div className="table-responsive">
+          <table className="table table-striped table-hover align-middle">
+            <thead style={{ backgroundColor: gmuGreen, color: "#fff" }}>
               <tr>
                 <th>Name</th>
                 <th>Contact</th>
@@ -66,16 +77,31 @@ export default function SurveyList({ surveys, loading, onEdit, onDelete }) {
                   </td>
                   <td>{formatDate(survey.date_of_survey)}</td>
                   <td>{formatLikedMost(survey.liked_most)}</td>
-                  <td>{interestSourceLabels[survey.interest_source] ?? survey.interest_source}</td>
-                  <td>{recommendationLabels[survey.recommendation_likelihood] ?? "—"}</td>
                   <td>
-                    <div className="table-actions">
-                      <button className="secondary" type="button" onClick={() => onEdit(survey)}>
+                    {interestSourceLabels[survey.interest_source] ??
+                      survey.interest_source}
+                  </td>
+                  <td>
+                    {recommendationLabels[survey.recommendation_likelihood] ??
+                      "—"}
+                  </td>
+                  <td>
+                    <div className="d-flex flex-column gap-2">
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        style={{ backgroundColor: gmuGreen, color: "#fff" }}
+                        onClick={() => onEdit(survey)}
+                      >
                         Edit
                       </button>
                       <button
-                        className="destructive"
                         type="button"
+                        className="btn btn-sm"
+                        style={{
+                          backgroundColor: gmuLightGray,
+                          color: gmuGreen,
+                        }}
                         onClick={() => onDelete(survey)}
                       >
                         Delete
